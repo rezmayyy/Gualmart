@@ -18,6 +18,7 @@ export default function Dashboard() {
   const [eventError, setEventError] = useState('');
   const [recentEvents, setRecentEvents] = useState<any[]>([]);
   const [allEvents, setAllEvents] = useState<any[]>([]);
+  const [allEventsForCharts, setAllEventsForCharts] = useState<any[]>([]);
   const [selectedTab, setSelectedTab] = useState('empty');
   const chartTabs = [
     { key: 'empty', label: 'Most Frequently Empty Items' },
@@ -28,7 +29,13 @@ export default function Dashboard() {
     { key: 'ratio', label: 'Restock vs Empty Ratio' },
   ];
   const allTabKeys = chartTabs.map(tab => tab.key);
-  const [selectedTabs, setSelectedTabs] = useState<string[]>(allTabKeys);
+  const [selectedTabs, setSelectedTabs] = useState<string[]>(['empty']);
+  const [recentEventsPage, setRecentEventsPage] = useState(1);
+  const EVENTS_PER_PAGE = 10;
+  const [recentEventsTotal, setRecentEventsTotal] = useState(0);
+  const [allEventsPage, setAllEventsPage] = useState(1);
+  const ALL_EVENTS_PER_PAGE = 10;
+  const [allEventsTotal, setAllEventsTotal] = useState(0);
 
   const handleTabClick = (key: string) => {
     if (key === 'all') {
@@ -86,27 +93,36 @@ export default function Dashboard() {
     fetchItems();
   }, [profile]);
 
-  // Fetch recent events
+  // Fetch recent events with pagination
   useEffect(() => {
     if (!profile) return;
     const fetchEvents = async () => {
-      const { data, error } = await supabase
-        .from('events')
-        .select('*, item:items(name,aisle)')
-        .eq('user_id', profile.id)
-        .order('created_at', { ascending: false })
-        .limit(10);
-      if (!error) setRecentEvents(data || []);
+      const from = (recentEventsPage - 1) * EVENTS_PER_PAGE;
+      const to = from + EVENTS_PER_PAGE - 1;
+      const [{ data, error, count },] = await Promise.all([
+        supabase
+          .from('events')
+          .select('*, item:items(name,aisle)', { count: 'exact' })
+          .eq('user_id', profile.id)
+          .order('created_at', { ascending: false })
+          .range(from, to),
+      ]);
+      if (!error) {
+        setRecentEvents(data || []);
+        setRecentEventsTotal(count || 0);
+      }
     };
     fetchEvents();
-  }, [profile, submitting]);
+  }, [profile, submitting, recentEventsPage]);
 
-  // Fetch all events, items, and profiles for manager
+  // Fetch all events, items, and profiles for manager with pagination (for table)
   useEffect(() => {
     if (!profile || profile.role !== 'manager') return;
     const fetchAll = async () => {
-      const [{ data: events, error: eventsError }, { data: items, error: itemsError }, { data: profiles, error: profilesError }] = await Promise.all([
-        supabase.from('events').select('*').order('created_at', { ascending: false }).limit(25),
+      const from = (allEventsPage - 1) * ALL_EVENTS_PER_PAGE;
+      const to = from + ALL_EVENTS_PER_PAGE - 1;
+      const [{ data: events, error: eventsError, count }, { data: items, error: itemsError }, { data: profiles, error: profilesError }] = await Promise.all([
+        supabase.from('events').select('*', { count: 'exact' }).order('created_at', { ascending: false }).range(from, to),
         supabase.from('items').select('id, name, aisle'),
         supabase.from('profiles').select('id, name, role'),
       ]);
@@ -118,13 +134,36 @@ export default function Dashboard() {
           user: profiles?.find(u => u.id === ev.user_id),
         }));
         setAllEvents(merged);
+        setAllEventsTotal(count || 0);
       }
     };
     fetchAll();
+  }, [profile, allEventsPage]);
+
+  // Fetch all events, items, and profiles for manager (for charts)
+  useEffect(() => {
+    if (!profile || profile.role !== 'manager') return;
+    const fetchAllForCharts = async () => {
+      const [{ data: events, error: eventsError }, { data: items, error: itemsError }, { data: profiles, error: profilesError }] = await Promise.all([
+        supabase.from('events').select('*').order('created_at', { ascending: false }),
+        supabase.from('items').select('id, name, aisle'),
+        supabase.from('profiles').select('id, name, role'),
+      ]);
+      if (!eventsError && !itemsError && !profilesError) {
+        // Merge events with item and user info
+        const merged = (events || []).map(ev => ({
+          ...ev,
+          item: items?.find(i => i.id === ev.item_id),
+          user: profiles?.find(u => u.id === ev.user_id),
+        }));
+        setAllEventsForCharts(merged);
+      }
+    };
+    fetchAllForCharts();
   }, [profile]);
 
-  // Data transformation for 'Most Frequently Empty Items'
-  const emptyCounts = allEvents
+  // Data transformation for charts should use allEventsForCharts
+  const emptyCounts = allEventsForCharts
     .filter(ev => ev.action === 'empty' && ev.item)
     .reduce((acc, ev) => {
       const name = ev.item.name;
@@ -137,7 +176,7 @@ export default function Dashboard() {
     .slice(0, 10); // Top 10
 
   // Data transformation for 'Most Frequently Restocked Items'
-  const restockedCounts = allEvents
+  const restockedCounts = allEventsForCharts
     .filter(ev => ev.action === 'restocked' && ev.item)
     .reduce((acc, ev) => {
       const name = ev.item.name;
@@ -150,7 +189,7 @@ export default function Dashboard() {
     .slice(0, 10); // Top 10
 
   // Data transformation for 'Busiest Aisles'
-  const aisleCounts = allEvents
+  const aisleCounts = allEventsForCharts
     .filter(ev => ev.item)
     .reduce((acc, ev) => {
       const aisle = ev.item.aisle;
@@ -163,7 +202,7 @@ export default function Dashboard() {
     .slice(0, 10); // Top 10
 
   // Data transformation for 'Events Over Time' (by day)
-  const eventsByDate = allEvents.reduce((acc, ev) => {
+  const eventsByDate = allEventsForCharts.reduce((acc, ev) => {
     const date = new Date(ev.created_at).toLocaleDateString();
     acc[date] = (acc[date] || 0) + 1;
     return acc;
@@ -173,7 +212,7 @@ export default function Dashboard() {
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   // Data transformation for 'Low Stock Frequency by Item'
-  const lowStockCounts = allEvents
+  const lowStockCounts = allEventsForCharts
     .filter(ev => ev.action === 'low_stock' && ev.item)
     .reduce((acc, ev) => {
       const name = ev.item.name;
@@ -187,7 +226,7 @@ export default function Dashboard() {
 
   // Data transformation for 'Restock vs Empty Ratio by Item'
   const restockEmptyCounts: Record<string, { restocked: number; empty: number }> = {};
-  allEvents.forEach(ev => {
+  allEventsForCharts.forEach(ev => {
     if (!ev.item) return;
     const name = ev.item.name;
     if (!restockEmptyCounts[name]) restockEmptyCounts[name] = { restocked: 0, empty: 0 };
@@ -298,6 +337,23 @@ export default function Dashboard() {
               </li>
             ))}
           </ul>
+          <div className="flex justify-between items-center mt-4">
+            <button
+              className="px-3 py-1 rounded bg-gray-100 text-gray-700 font-semibold disabled:opacity-50"
+              onClick={() => setRecentEventsPage(p => Math.max(1, p - 1))}
+              disabled={recentEventsPage === 1}
+            >
+              Previous
+            </button>
+            <span className="text-sm">Page {recentEventsPage} of {Math.max(1, Math.ceil(recentEventsTotal / EVENTS_PER_PAGE))}</span>
+            <button
+              className="px-3 py-1 rounded bg-gray-100 text-gray-700 font-semibold disabled:opacity-50"
+              onClick={() => setRecentEventsPage(p => p + 1)}
+              disabled={recentEventsPage * EVENTS_PER_PAGE >= recentEventsTotal}
+            >
+              Next
+            </button>
+          </div>
         </div>
       </main>
     );
@@ -341,6 +397,7 @@ export default function Dashboard() {
                   <YAxis type="category" dataKey="name" width={120} />
                   <Tooltip />
                   <Bar dataKey="count" fill="#0071ce">
+                    <LabelList dataKey="name" position="insideLeft" style={{ fill: 'white', fontWeight: 'bold' }} />
                     <LabelList dataKey="count" position="right" />
                   </Bar>
                 </BarChart>
@@ -361,6 +418,7 @@ export default function Dashboard() {
                   <YAxis type="category" dataKey="name" width={120} />
                   <Tooltip />
                   <Bar dataKey="count" fill="#ffc220">
+                    <LabelList dataKey="name" position="insideLeft" style={{ fill: 'white', fontWeight: 'bold' }} />
                     <LabelList dataKey="count" position="right" />
                   </Bar>
                 </BarChart>
@@ -381,6 +439,7 @@ export default function Dashboard() {
                   <YAxis type="category" dataKey="name" width={120} />
                   <Tooltip />
                   <Bar dataKey="count" fill="#ff7043">
+                    <LabelList dataKey="name" position="insideLeft" style={{ fill: 'white', fontWeight: 'bold' }} />
                     <LabelList dataKey="count" position="right" />
                   </Bar>
                 </BarChart>
@@ -401,6 +460,7 @@ export default function Dashboard() {
                   <YAxis type="category" dataKey="aisle" width={120} />
                   <Tooltip />
                   <Bar dataKey="count" fill="#0071ce">
+                    <LabelList dataKey="name" position="insideLeft" style={{ fill: 'white', fontWeight: 'bold' }} />
                     <LabelList dataKey="count" position="right" />
                   </Bar>
                 </BarChart>
@@ -439,6 +499,7 @@ export default function Dashboard() {
                   <YAxis type="category" dataKey="name" width={120} />
                   <Tooltip />
                   <Bar dataKey="restocked" fill="#ffc220" name="Restocked">
+                    <LabelList dataKey="name" position="insideLeft" style={{ fill: 'white', fontWeight: 'bold' }} />
                     <LabelList dataKey="restocked" position="right" />
                   </Bar>
                   <Bar dataKey="empty" fill="#0071ce" name="Empty">
@@ -477,6 +538,23 @@ export default function Dashboard() {
                 ))}
               </tbody>
             </table>
+          </div>
+          <div className="flex justify-between items-center mt-4">
+            <button
+              className="px-3 py-1 rounded bg-gray-100 text-gray-700 font-semibold disabled:opacity-50"
+              onClick={() => setAllEventsPage(p => Math.max(1, p - 1))}
+              disabled={allEventsPage === 1}
+            >
+              Previous
+            </button>
+            <span className="text-sm">Page {allEventsPage} of {Math.max(1, Math.ceil(allEventsTotal / ALL_EVENTS_PER_PAGE))}</span>
+            <button
+              className="px-3 py-1 rounded bg-gray-100 text-gray-700 font-semibold disabled:opacity-50"
+              onClick={() => setAllEventsPage(p => p + 1)}
+              disabled={allEventsPage * ALL_EVENTS_PER_PAGE >= allEventsTotal}
+            >
+              Next
+            </button>
           </div>
         </div>
       </main>

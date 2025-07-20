@@ -36,8 +36,8 @@ export default function SignUp() {
 
       if (data.user) {
         console.log('User created successfully:', data.user)
-        alert('Account created! Please check your email to verify your account.')
-        router.push('/signin')
+        alert('Account created!')
+        router.push('/dashboard')
       }
     } catch (error: any) {
       console.error('Sign up error:', error)
