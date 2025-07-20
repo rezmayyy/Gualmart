@@ -48,13 +48,14 @@ export default function SignUp() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-bold text-[#0071ce]">
-            Create your account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+    <div className="min-h-[70vh] flex items-center justify-center bg-gradient-to-br from-blue-50 to-white py-8 px-4 font-sans">
+      <div className="max-w-md w-full space-y-8 bg-white/90 rounded-2xl shadow-xl p-10" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+        <div className="flex flex-col items-center">
+          <span className="inline-block bg-[#0071ce] rounded-full p-3 mb-4 shadow">
+            <svg width="32" height="32" fill="none" viewBox="0 0 24 24"><path fill="#fff" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 15h-2v-2h2v2Zm0-4h-2V7h2v6Z"/></svg>
+          </span>
+          <h2 className="mt-2 text-center text-2xl font-bold text-[#0071ce]">Create your account</h2>
+          <p className="mt-1 text-center text-sm text-gray-600">
             Join the Gualmart team
           </p>
         </div>
@@ -69,10 +70,11 @@ export default function SignUp() {
                 name="name"
                 type="text"
                 required
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-[#0071ce] focus:border-[#0071ce] sm:text-sm"
+                className="mt-1 appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0071ce] focus:border-[#0071ce] sm:text-base transition"
                 placeholder="Enter your full name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                style={{ fontFamily: 'Montserrat, sans-serif' }}
               />
             </div>
             <div>
@@ -85,10 +87,11 @@ export default function SignUp() {
                 type="email"
                 autoComplete="email"
                 required
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-[#0071ce] focus:border-[#0071ce] sm:text-sm"
+                className="mt-1 appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0071ce] focus:border-[#0071ce] sm:text-base transition"
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                style={{ fontFamily: 'Montserrat, sans-serif' }}
               />
             </div>
             <div>
@@ -101,10 +104,11 @@ export default function SignUp() {
                 type="password"
                 autoComplete="new-password"
                 required
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-[#0071ce] focus:border-[#0071ce] sm:text-sm"
+                className="mt-1 appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0071ce] focus:border-[#0071ce] sm:text-base transition"
                 placeholder="Create a password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                style={{ fontFamily: 'Montserrat, sans-serif' }}
               />
             </div>
             <div>
@@ -115,9 +119,10 @@ export default function SignUp() {
                 id="role"
                 name="role"
                 required
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#0071ce] focus:border-[#0071ce] sm:text-sm"
+                className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0071ce] focus:border-[#0071ce] sm:text-base transition"
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
+                style={{ fontFamily: 'Montserrat, sans-serif' }}
               >
                 <option value="associate">Associate</option>
                 <option value="manager">Manager</option>
@@ -133,7 +138,8 @@ export default function SignUp() {
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-[#0071ce] hover:bg-[#005fa3] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0071ce] disabled:opacity-50"
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-base font-bold rounded-lg text-white bg-[#0071ce] hover:bg-[#005fa3] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0071ce] disabled:opacity-50 transition"
+              style={{ fontFamily: 'Montserrat, sans-serif' }}
             >
               {loading ? 'Creating account...' : 'Create account'}
             </button>

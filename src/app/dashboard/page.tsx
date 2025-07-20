@@ -28,8 +28,6 @@ export default function Dashboard() {
     { key: 'time', label: 'Events Over Time' },
     { key: 'ratio', label: 'Restock vs Empty Ratio' },
   ];
-  const allTabKeys = chartTabs.map(tab => tab.key);
-  const [selectedTabs, setSelectedTabs] = useState<string[]>(['empty']);
   const [recentEventsPage, setRecentEventsPage] = useState(1);
   const EVENTS_PER_PAGE = 10;
   const [recentEventsTotal, setRecentEventsTotal] = useState(0);
@@ -276,83 +274,90 @@ export default function Dashboard() {
 
   if (profile.role === 'associate') {
     return (
-      <main className="max-w-2xl mx-auto py-10 px-4">
-        <h1 className="text-2xl font-bold mb-4 text-[#0071ce]">Welcome, {profile.name}!</h1>
-        <p className="mb-6">Log shelf events below and view your recent activity.</p>
-        <form onSubmit={handleSubmit} className="border rounded p-6 bg-white shadow mb-8 flex flex-col gap-4">
-          <div>
-            <label className="block font-semibold mb-1">Item</label>
-            <select
-              className="w-full border rounded px-3 py-2"
-              value={selectedItem?.id || ''}
-              onChange={e => {
-                const item = items.find(i => i.id === e.target.value);
-                setSelectedItem(item || null);
-              }}
-              required
-            >
-              <option value="">Select an item...</option>
-              {items.map(item => (
-                <option key={item.id} value={item.id}>{item.name}</option>
-              ))}
-            </select>
-            {selectedItem && (
-              <div className="text-sm text-gray-600 mt-1">Aisle: {selectedItem.aisle} | Capacity: {selectedItem.capacity || 'N/A'}</div>
-            )}
-          </div>
-          <div>
-            <label className="block font-semibold mb-1">Action</label>
-            <div className="flex gap-4">
-              <button type="button" className={`px-4 py-2 rounded ${action==='empty'?'bg-[#0071ce] text-white':'bg-gray-100 text-gray-700'}`} onClick={() => setAction('empty')}>Empty</button>
-              <button type="button" className={`px-4 py-2 rounded ${action==='low_stock'?'bg-[#0071ce] text-white':'bg-gray-100 text-gray-700'}`} onClick={() => setAction('low_stock')}>Low Stock</button>
-              <button type="button" className={`px-4 py-2 rounded ${action==='restocked'?'bg-[#0071ce] text-white':'bg-gray-100 text-gray-700'}`} onClick={() => setAction('restocked')}>Restocked</button>
-            </div>
-          </div>
-          {(action === 'low_stock' || action === 'restocked') && (
+      <main className="max-w-2xl mx-auto py-10 px-4 font-sans bg-gradient-to-br from-blue-50 to-white min-h-[80vh]">
+        <div className="bg-white/90 rounded-2xl shadow-xl p-8 mb-10" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+          <h1 className="text-2xl font-extrabold mb-2 text-[#0071ce]" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+            Welcome, {profile.name}!
+          </h1>
+          <p className="mb-6 text-gray-700">Log shelf events below and view your recent activity.</p>
+          <form onSubmit={handleSubmit} className="rounded-xl bg-blue-50/60 border border-blue-100 p-6 mb-8 flex flex-col gap-4 shadow-sm">
             <div>
-              <label className="block font-semibold mb-1">Count</label>
-              <input
-                type="number"
-                min="0"
-                className="w-full border rounded px-3 py-2"
-                value={count}
-                onChange={e => setCount(e.target.value)}
-                placeholder="Enter count..."
-              />
+              <label className="block font-semibold mb-1 text-[#0071ce]">Item</label>
+              <select
+                className="w-full border rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#0071ce] focus:border-[#0071ce] transition"
+                value={selectedItem?.id || ''}
+                onChange={e => {
+                  const item = items.find(i => i.id === e.target.value);
+                  setSelectedItem(item || null);
+                }}
+                required
+                style={{ fontFamily: 'Montserrat, sans-serif' }}
+              >
+                <option value="">Select an item...</option>
+                {items.map(item => (
+                  <option key={item.id} value={item.id}>{item.name}</option>
+                ))}
+              </select>
+              {selectedItem && (
+                <div className="text-sm text-gray-600 mt-1">Aisle: {selectedItem.aisle} | Capacity: {selectedItem.capacity || 'N/A'}</div>
+              )}
             </div>
-          )}
-          {eventError && <div className="text-red-600 text-sm">{eventError}</div>}
-          <button type="submit" disabled={submitting} className="bg-[#0071ce] text-white px-6 py-2 rounded font-semibold hover:bg-[#005fa3] transition disabled:opacity-50">
-            {submitting ? 'Logging...' : 'Log Event'}
-          </button>
-        </form>
-        <div className="border rounded p-6 bg-white shadow">
-          <h2 className="text-lg font-bold mb-4">Your Recent Events</h2>
-          {recentEvents.length === 0 && <div className="text-gray-500">No events yet.</div>}
-          <ul className="space-y-2">
-            {recentEvents.map(ev => (
-              <li key={ev.id} className="border-b pb-2 last:border-b-0 flex flex-col sm:flex-row sm:justify-between sm:items-center">
-                <span><span className="font-semibold">{ev.item?.name || 'Unknown Item'}</span> ({ev.item?.aisle || 'N/A'})</span>
-                <span className="text-sm">{ev.action.replace('_', ' ')}{ev.count !== null && ev.count !== undefined ? ` (${ev.count})` : ''} &middot; {new Date(ev.created_at).toLocaleString()}</span>
-              </li>
-            ))}
-          </ul>
-          <div className="flex justify-between items-center mt-4">
-            <button
-              className="px-3 py-1 rounded bg-gray-100 text-gray-700 font-semibold disabled:opacity-50"
-              onClick={() => setRecentEventsPage(p => Math.max(1, p - 1))}
-              disabled={recentEventsPage === 1}
-            >
-              Previous
+            <div>
+              <label className="block font-semibold mb-1 text-[#0071ce]">Action</label>
+              <div className="flex gap-4">
+                <button type="button" className={`px-4 py-2 rounded-lg font-bold transition ${action==='empty'?'bg-[#0071ce] text-white':'bg-gray-100 text-gray-700 hover:bg-blue-50'}`} onClick={() => setAction('empty')} style={{ fontFamily: 'Montserrat, sans-serif' }}>Empty</button>
+                <button type="button" className={`px-4 py-2 rounded-lg font-bold transition ${action==='low_stock'?'bg-[#0071ce] text-white':'bg-gray-100 text-gray-700 hover:bg-blue-50'}`} onClick={() => setAction('low_stock')} style={{ fontFamily: 'Montserrat, sans-serif' }}>Low Stock</button>
+                <button type="button" className={`px-4 py-2 rounded-lg font-bold transition ${action==='restocked'?'bg-[#0071ce] text-white':'bg-gray-100 text-gray-700 hover:bg-blue-50'}`} onClick={() => setAction('restocked')} style={{ fontFamily: 'Montserrat, sans-serif' }}>Restocked</button>
+              </div>
+            </div>
+            {(action === 'low_stock' || action === 'restocked') && (
+              <div>
+                <label className="block font-semibold mb-1 text-[#0071ce]">Count</label>
+                <input
+                  type="number"
+                  min="0"
+                  className="w-full border rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#0071ce] focus:border-[#0071ce] transition"
+                  value={count}
+                  onChange={e => setCount(e.target.value)}
+                  placeholder="Enter count..."
+                  style={{ fontFamily: 'Montserrat, sans-serif' }}
+                />
+              </div>
+            )}
+            {eventError && <div className="text-red-600 text-sm">{eventError}</div>}
+            <button type="submit" disabled={submitting} className="bg-[#0071ce] text-white px-6 py-2 rounded-lg font-bold hover:bg-[#005fa3] transition disabled:opacity-50 mt-2" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+              {submitting ? 'Logging...' : 'Log Event'}
             </button>
-            <span className="text-sm">Page {recentEventsPage} of {Math.max(1, Math.ceil(recentEventsTotal / EVENTS_PER_PAGE))}</span>
-            <button
-              className="px-3 py-1 rounded bg-gray-100 text-gray-700 font-semibold disabled:opacity-50"
-              onClick={() => setRecentEventsPage(p => p + 1)}
-              disabled={recentEventsPage * EVENTS_PER_PAGE >= recentEventsTotal}
-            >
-              Next
-            </button>
+          </form>
+          <div className="rounded-xl bg-blue-50/60 border border-blue-100 p-6 shadow-sm" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+            <h2 className="text-lg font-bold mb-4 text-[#0071ce]">Your Recent Events</h2>
+            {recentEvents.length === 0 && <div className="text-gray-500">No events yet.</div>}
+            <ul className="space-y-2">
+              {recentEvents.map(ev => (
+                <li key={ev.id} className="border-b pb-2 last:border-b-0 flex flex-col sm:flex-row sm:justify-between sm:items-center text-base" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+                  <span className="font-semibold text-[#0071ce]">{ev.item?.name || 'Unknown Item'}</span>
+                  <span className="text-gray-600 text-sm">({ev.item?.aisle || 'N/A'})</span>
+                  <span className="text-sm text-gray-700 mt-1 sm:mt-0">{ev.action.replace('_', ' ')}{ev.count !== null && ev.count !== undefined ? ` (${ev.count})` : ''} &middot; {new Date(ev.created_at).toLocaleString()}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="flex justify-between items-center mt-4">
+              <button
+                className="px-3 py-1 rounded bg-gray-100 text-gray-700 font-semibold disabled:opacity-50"
+                onClick={() => setRecentEventsPage(p => Math.max(1, p - 1))}
+                disabled={recentEventsPage === 1}
+              >
+                Previous
+              </button>
+              <span className="text-sm">Page {recentEventsPage} of {Math.max(1, Math.ceil(recentEventsTotal / EVENTS_PER_PAGE))}</span>
+              <button
+                className="px-3 py-1 rounded bg-gray-100 text-gray-700 font-semibold disabled:opacity-50"
+                onClick={() => setRecentEventsPage(p => p + 1)}
+                disabled={recentEventsPage * EVENTS_PER_PAGE >= recentEventsTotal}
+              >
+                Next
+              </button>
+            </div>
           </div>
         </div>
       </main>
@@ -361,179 +366,174 @@ export default function Dashboard() {
 
   if (profile.role === 'manager') {
     return (
-      <main className="max-w-4xl mx-auto py-10 px-4">
-        <h1 className="text-2xl font-bold mb-4 text-[#0071ce]">Welcome, Manager {profile.name}!</h1>
-        <p className="mb-6">View store trends, all events, and manage inventory.</p>
-        {/* Chart Tabs */}
-        <div className="mb-6 flex gap-2 flex-wrap sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-gray-200">
-          <button
-            key="all"
-            onClick={() => handleTabClick('all')}
-            className={`px-4 py-2 rounded-t font-semibold border-b-2 transition-colors ${selectedTabs.length === allTabKeys.length ? 'bg-[#0071ce] text-white border-[#0071ce]' : 'bg-gray-100 text-gray-700 border-transparent hover:bg-blue-50'}`}
-          >
-            All
-          </button>
-          {chartTabs.map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => handleTabClick(tab.key)}
-              className={`px-4 py-2 rounded-t font-semibold border-b-2 transition-colors ${selectedTabs.includes(tab.key) ? 'bg-[#0071ce] text-white border-[#0071ce]' : 'bg-gray-100 text-gray-700 border-transparent hover:bg-blue-50'}`}
-            >
-              {tab.label}
-            </button>
-          ))}
+      <main className="max-w-5xl mx-auto py-10 px-4 font-sans bg-gradient-to-br from-blue-50 to-white min-h-[80vh]">
+        <div className="bg-white/90 rounded-2xl shadow-xl p-8 mb-10" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+          <h1 className="text-2xl font-extrabold mb-2 text-[#0071ce]" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+            Welcome, Manager {profile.name}!
+          </h1>
+          <p className="mb-6 text-gray-700">View store trends, all events, and manage inventory.</p>
+          {/* Sticky Horizontal Tab Menu */}
+          <nav className="sticky top-16 z-40 bg-white/90 backdrop-blur border-b border-gray-200 mb-6 w-full overflow-x-auto">
+            <ul className="flex gap-2 py-2 px-1 justify-center">
+              {chartTabs.map(tab => (
+                <li key={tab.key}>
+                  <button
+                    onClick={() => setSelectedTab(tab.key)}
+                    className={`px-4 py-2 rounded font-semibold text-sm transition ${selectedTab === tab.key ? 'bg-[#0071ce] text-white' : 'bg-gray-100 text-gray-700 hover:bg-[#0071ce] hover:text-white'}`}
+                    style={{ fontFamily: 'Montserrat, sans-serif' }}
+                  >
+                    {tab.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </nav>
+          {selectedTab === 'empty' && (
+            <div className="border rounded-b p-6 bg-white shadow mb-8">
+              <h2 className="text-lg font-bold mb-4">Most Frequently Empty Items</h2>
+              {emptyData.length === 0 ? (
+                <div className="text-gray-500">No empty events yet.</div>
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={emptyData} layout="vertical" margin={{ left: 20, right: 20, top: 10, bottom: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" allowDecimals={false} label={{ value: 'Times Empty', position: 'insideBottom', offset: -5 }} />
+                    <YAxis type="category" dataKey="name" width={120} />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#0071ce">
+                      <LabelList dataKey="count" position="right" style={{ fill: 'black', fontSize: 14, fontWeight: 700 }} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          )}
+          {selectedTab === 'restocked' && (
+            <div className="border rounded-b p-6 bg-white shadow mb-8">
+              <h2 className="text-lg font-bold mb-4">Most Frequently Restocked Items</h2>
+              {restockedData.length === 0 ? (
+                <div className="text-gray-500">No restocked events yet.</div>
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={restockedData} layout="vertical" margin={{ left: 20, right: 20, top: 10, bottom: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" allowDecimals={false} label={{ value: 'Times Restocked', position: 'insideBottom', offset: -5 }} />
+                    <YAxis type="category" dataKey="name" width={120} />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#ffc220">
+                      <LabelList dataKey="count" position="right" style={{ fill: 'black', fontSize: 14, fontWeight: 700 }} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          )}
+          {selectedTab === 'lowstock' && (
+            <div className="border rounded-b p-6 bg-white shadow mb-8">
+              <h2 className="text-lg font-bold mb-4">Low Stock Frequency by Item</h2>
+              {lowStockData.length === 0 ? (
+                <div className="text-gray-500">No low stock events yet.</div>
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={lowStockData} layout="vertical" margin={{ left: 20, right: 20, top: 10, bottom: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" allowDecimals={false} label={{ value: 'Low Stock Events', position: 'insideBottom', offset: -5 }} />
+                    <YAxis type="category" dataKey="name" width={120} />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#ff7043">
+                      <LabelList dataKey="count" position="right" style={{ fill: 'black', fontSize: 14, fontWeight: 700 }} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          )}
+          {selectedTab === 'aisles' && (
+            <div className="border rounded-b p-6 bg-white shadow mb-8">
+              <h2 className="text-lg font-bold mb-4">Busiest Aisles</h2>
+              {aisleData.length === 0 ? (
+                <div className="text-gray-500">No events yet.</div>
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={aisleData} layout="vertical" margin={{ left: 20, right: 20, top: 10, bottom: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" allowDecimals={false} label={{ value: 'Events', position: 'insideBottom', offset: -5 }} />
+                    <YAxis type="category" dataKey="aisle" width={120} />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#0071ce">
+                      <LabelList dataKey="count" position="right" style={{ fill: 'black', fontSize: 14, fontWeight: 700 }} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          )}
+          {selectedTab === 'time' && (
+            <div className="border rounded-b p-6 bg-white shadow mb-8">
+              <h2 className="text-lg font-bold mb-4">Events Over Time</h2>
+              {eventsOverTimeData.length === 0 ? (
+                <div className="text-gray-500">No events yet.</div>
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={eventsOverTimeData} margin={{ left: 20, right: 20, top: 10, bottom: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis allowDecimals={false} label={{ value: 'Events', angle: -90, position: 'insideLeft' }} />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="count" stroke="#0071ce" strokeWidth={3} dot={{ r: 4 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          )}
+          {selectedTab === 'ratio' && (
+            <div className="border rounded-b p-6 bg-white shadow mb-8">
+              <h2 className="text-lg font-bold mb-4">Restock vs Empty Ratio by Item</h2>
+              {restockEmptyData.length === 0 ? (
+                <div className="text-gray-500">No restock or empty events yet.</div>
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={restockEmptyData} layout="vertical" margin={{ left: 20, right: 20, top: 10, bottom: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" allowDecimals={false} label={{ value: 'Events', position: 'insideBottom', offset: -5 }} />
+                    <YAxis type="category" dataKey="name" width={120} />
+                    <Tooltip />
+                    <Bar dataKey="restocked" fill="#ffc220" name="Restocked">
+                      <LabelList dataKey="restocked" position="right" style={{ fill: 'black', fontSize: 14, fontWeight: 700 }} />
+                    </Bar>
+                    <Bar dataKey="empty" fill="#0071ce" name="Empty">
+                      <LabelList dataKey="empty" position="right" style={{ fill: 'black', fontSize: 14, fontWeight: 700 }} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          )}
         </div>
-        {/* Chart Content */}
-        {selectedTabs.includes('empty') && (
-          <div className="border rounded-b p-6 bg-white shadow mb-8">
-            <h2 className="text-lg font-bold mb-4">Most Frequently Empty Items</h2>
-            {emptyData.length === 0 ? (
-              <div className="text-gray-500">No empty events yet.</div>
-            ) : (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={emptyData} layout="vertical" margin={{ left: 20, right: 20, top: 10, bottom: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" allowDecimals={false} label={{ value: 'Times Empty', position: 'insideBottom', offset: -5 }} />
-                  <YAxis type="category" dataKey="name" width={120} />
-                  <Tooltip />
-                  <Bar dataKey="count" fill="#0071ce">
-                    <LabelList dataKey="name" position="insideLeft" style={{ fill: 'white', fontWeight: 'bold' }} />
-                    <LabelList dataKey="count" position="right" />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        )}
-        {selectedTabs.includes('restocked') && (
-          <div className="border rounded-b p-6 bg-white shadow mb-8">
-            <h2 className="text-lg font-bold mb-4">Most Frequently Restocked Items</h2>
-            {restockedData.length === 0 ? (
-              <div className="text-gray-500">No restocked events yet.</div>
-            ) : (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={restockedData} layout="vertical" margin={{ left: 20, right: 20, top: 10, bottom: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" allowDecimals={false} label={{ value: 'Times Restocked', position: 'insideBottom', offset: -5 }} />
-                  <YAxis type="category" dataKey="name" width={120} />
-                  <Tooltip />
-                  <Bar dataKey="count" fill="#ffc220">
-                    <LabelList dataKey="name" position="insideLeft" style={{ fill: 'white', fontWeight: 'bold' }} />
-                    <LabelList dataKey="count" position="right" />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        )}
-        {selectedTabs.includes('lowstock') && (
-          <div className="border rounded-b p-6 bg-white shadow mb-8">
-            <h2 className="text-lg font-bold mb-4">Low Stock Frequency by Item</h2>
-            {lowStockData.length === 0 ? (
-              <div className="text-gray-500">No low stock events yet.</div>
-            ) : (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={lowStockData} layout="vertical" margin={{ left: 20, right: 20, top: 10, bottom: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" allowDecimals={false} label={{ value: 'Low Stock Events', position: 'insideBottom', offset: -5 }} />
-                  <YAxis type="category" dataKey="name" width={120} />
-                  <Tooltip />
-                  <Bar dataKey="count" fill="#ff7043">
-                    <LabelList dataKey="name" position="insideLeft" style={{ fill: 'white', fontWeight: 'bold' }} />
-                    <LabelList dataKey="count" position="right" />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        )}
-        {selectedTabs.includes('aisles') && (
-          <div className="border rounded-b p-6 bg-white shadow mb-8">
-            <h2 className="text-lg font-bold mb-4">Busiest Aisles</h2>
-            {aisleData.length === 0 ? (
-              <div className="text-gray-500">No events yet.</div>
-            ) : (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={aisleData} layout="vertical" margin={{ left: 20, right: 20, top: 10, bottom: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" allowDecimals={false} label={{ value: 'Events', position: 'insideBottom', offset: -5 }} />
-                  <YAxis type="category" dataKey="aisle" width={120} />
-                  <Tooltip />
-                  <Bar dataKey="count" fill="#0071ce">
-                    <LabelList dataKey="name" position="insideLeft" style={{ fill: 'white', fontWeight: 'bold' }} />
-                    <LabelList dataKey="count" position="right" />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        )}
-        {selectedTabs.includes('time') && (
-          <div className="border rounded-b p-6 bg-white shadow mb-8">
-            <h2 className="text-lg font-bold mb-4">Events Over Time</h2>
-            {eventsOverTimeData.length === 0 ? (
-              <div className="text-gray-500">No events yet.</div>
-            ) : (
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={eventsOverTimeData} margin={{ left: 20, right: 20, top: 10, bottom: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis allowDecimals={false} label={{ value: 'Events', angle: -90, position: 'insideLeft' }} />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="count" stroke="#0071ce" strokeWidth={3} dot={{ r: 4 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        )}
-        {selectedTabs.includes('ratio') && (
-          <div className="border rounded-b p-6 bg-white shadow mb-8">
-            <h2 className="text-lg font-bold mb-4">Restock vs Empty Ratio by Item</h2>
-            {restockEmptyData.length === 0 ? (
-              <div className="text-gray-500">No restock or empty events yet.</div>
-            ) : (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={restockEmptyData} layout="vertical" margin={{ left: 20, right: 20, top: 10, bottom: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" allowDecimals={false} label={{ value: 'Events', position: 'insideBottom', offset: -5 }} />
-                  <YAxis type="category" dataKey="name" width={120} />
-                  <Tooltip />
-                  <Bar dataKey="restocked" fill="#ffc220" name="Restocked">
-                    <LabelList dataKey="name" position="insideLeft" style={{ fill: 'white', fontWeight: 'bold' }} />
-                    <LabelList dataKey="restocked" position="right" />
-                  </Bar>
-                  <Bar dataKey="empty" fill="#0071ce" name="Empty">
-                    <LabelList dataKey="empty" position="right" />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        )}
-        <div className="border rounded p-6 bg-white shadow">
-          <h2 className="text-lg font-bold mb-4">Recent Events</h2>
+        <div className="border rounded p-6 bg-white shadow font-sans">
+          <h2 className="text-lg font-bold mb-4 text-[#0071ce]" style={{ fontFamily: 'Montserrat, sans-serif' }}>Recent Events</h2>
           {allEvents.length === 0 && <div className="text-gray-500">No events yet.</div>}
           <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
+            <table className="min-w-full text-sm" style={{ fontFamily: 'Montserrat, sans-serif' }}>
               <thead>
                 <tr className="bg-gray-100">
-                  <th className="px-2 py-1 text-left">Time</th>
-                  <th className="px-2 py-1 text-left">Item</th>
-                  <th className="px-2 py-1 text-left">Aisle</th>
-                  <th className="px-2 py-1 text-left">Action</th>
-                  <th className="px-2 py-1 text-left">Count</th>
-                  <th className="px-2 py-1 text-left">User</th>
+                  <th className="px-2 py-1 text-left font-semibold">Time</th>
+                  <th className="px-2 py-1 text-left font-semibold">Item</th>
+                  <th className="px-2 py-1 text-left font-semibold">Aisle</th>
+                  <th className="px-2 py-1 text-left font-semibold">Action</th>
+                  <th className="px-2 py-1 text-left font-semibold">Count</th>
+                  <th className="px-2 py-1 text-left font-semibold">User</th>
                 </tr>
               </thead>
               <tbody>
                 {allEvents.map(ev => (
                   <tr key={ev.id} className="border-b last:border-b-0">
-                    <td className="px-2 py-1 whitespace-nowrap">{new Date(ev.created_at).toLocaleString()}</td>
-                    <td className="px-2 py-1">{ev.item?.name || 'Unknown'}</td>
-                    <td className="px-2 py-1">{ev.item?.aisle || 'N/A'}</td>
-                    <td className="px-2 py-1 capitalize">{ev.action.replace('_', ' ')}</td>
-                    <td className="px-2 py-1">{ev.count !== undefined && ev.count !== null ? ev.count : '-'}</td>
-                    <td className="px-2 py-1">{ev.user?.name || 'Unknown'}</td>
+                    <td className="px-2 py-1 whitespace-nowrap text-gray-700">{new Date(ev.created_at).toLocaleString()}</td>
+                    <td className="px-2 py-1 font-semibold text-[#0071ce]">{ev.item?.name || 'Unknown'}</td>
+                    <td className="px-2 py-1 text-gray-600">{ev.item?.aisle || 'N/A'}</td>
+                    <td className="px-2 py-1 capitalize text-gray-700">{ev.action.replace('_', ' ')}</td>
+                    <td className="px-2 py-1 text-gray-700">{ev.count !== undefined && ev.count !== null ? ev.count : '-'}</td>
+                    <td className="px-2 py-1 text-gray-700">{ev.user?.name || 'Unknown'}</td>
                   </tr>
                 ))}
               </tbody>
