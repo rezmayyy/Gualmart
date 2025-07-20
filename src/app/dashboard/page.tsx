@@ -36,20 +36,7 @@ export default function Dashboard() {
   const [allEventsTotal, setAllEventsTotal] = useState(0);
 
   const handleTabClick = (key: string) => {
-    if (key === 'all') {
-      // Toggle all
-      setSelectedTabs(selectedTabs.length === allTabKeys.length ? [] : allTabKeys);
-    } else {
-      setSelectedTabs(prev => {
-        if (prev.includes(key)) {
-          // Remove
-          return prev.filter(k => k !== key);
-        } else {
-          // Add
-          return [...prev, key];
-        }
-      });
-    }
+    setSelectedTab(key);
   };
   const router = useRouter();
 
@@ -378,7 +365,7 @@ export default function Dashboard() {
               {chartTabs.map(tab => (
                 <li key={tab.key}>
                   <button
-                    onClick={() => setSelectedTab(tab.key)}
+                    onClick={() => handleTabClick(tab.key)}
                     className={`px-4 py-2 rounded font-semibold text-sm transition ${selectedTab === tab.key ? 'bg-[#0071ce] text-white' : 'bg-gray-100 text-gray-700 hover:bg-[#0071ce] hover:text-white'}`}
                     style={{ fontFamily: 'Montserrat, sans-serif' }}
                   >
