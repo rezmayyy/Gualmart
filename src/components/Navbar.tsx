@@ -35,6 +35,7 @@ export default function Navbar() {
       <div className="font-bold text-lg tracking-wide">Gualmart Shelf Tracker</div>
       <div className="flex gap-6 items-center">
         <Link href="/" className="hover:underline">Home</Link>
+        {user && <Link href="/dashboard" className="hover:underline">Dashboard</Link>}
         {!user && <Link href="/signup" className="hover:underline">Sign Up</Link>}
         {!user && <Link href="/signin" className="hover:underline">Sign In</Link>}
         {user && (

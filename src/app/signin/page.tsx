@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
 
 export default function SignIn() {
   const [email, setEmail] = useState('')
@@ -16,13 +17,22 @@ export default function SignIn() {
     setError('')
 
     try {
-      // TODO: Add Supabase auth logic here
-      console.log('Sign in attempt:', { email, password })
-      
-      // For now, just redirect to dashboard
-      router.push('/dashboard')
-    } catch (error) {
-      setError('Sign in failed. Please try again.')
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (error) {
+        throw error
+      }
+
+      if (data.user) {
+        router.push('/dashboard')
+      } else {
+        setError('Sign in failed. Please try again.')
+      }
+    } catch (error: any) {
+      setError(error.message || 'Sign in failed. Please try again.')
     } finally {
       setLoading(false)
     }
