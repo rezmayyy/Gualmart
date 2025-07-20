@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LabelList } from 'recharts';
+import { LineChart, Line } from 'recharts';
 
 export default function Dashboard() {
   const [profile, setProfile] = useState<any>(null);
@@ -16,6 +18,34 @@ export default function Dashboard() {
   const [eventError, setEventError] = useState('');
   const [recentEvents, setRecentEvents] = useState<any[]>([]);
   const [allEvents, setAllEvents] = useState<any[]>([]);
+  const [selectedTab, setSelectedTab] = useState('empty');
+  const chartTabs = [
+    { key: 'empty', label: 'Most Frequently Empty Items' },
+    { key: 'restocked', label: 'Most Frequently Restocked Items' },
+    { key: 'lowstock', label: 'Low Stock Frequency by Item' },
+    { key: 'aisles', label: 'Busiest Aisles' },
+    { key: 'time', label: 'Events Over Time' },
+    { key: 'ratio', label: 'Restock vs Empty Ratio' },
+  ];
+  const allTabKeys = chartTabs.map(tab => tab.key);
+  const [selectedTabs, setSelectedTabs] = useState<string[]>(allTabKeys);
+
+  const handleTabClick = (key: string) => {
+    if (key === 'all') {
+      // Toggle all
+      setSelectedTabs(selectedTabs.length === allTabKeys.length ? [] : allTabKeys);
+    } else {
+      setSelectedTabs(prev => {
+        if (prev.includes(key)) {
+          // Remove
+          return prev.filter(k => k !== key);
+        } else {
+          // Add
+          return [...prev, key];
+        }
+      });
+    }
+  };
   const router = useRouter();
 
   // Fetch profile
@@ -92,6 +122,82 @@ export default function Dashboard() {
     };
     fetchAll();
   }, [profile]);
+
+  // Data transformation for 'Most Frequently Empty Items'
+  const emptyCounts = allEvents
+    .filter(ev => ev.action === 'empty' && ev.item)
+    .reduce((acc, ev) => {
+      const name = ev.item.name;
+      acc[name] = (acc[name] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+  const emptyData = Object.entries(emptyCounts)
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => (b.count as number) - (a.count as number))
+    .slice(0, 10); // Top 10
+
+  // Data transformation for 'Most Frequently Restocked Items'
+  const restockedCounts = allEvents
+    .filter(ev => ev.action === 'restocked' && ev.item)
+    .reduce((acc, ev) => {
+      const name = ev.item.name;
+      acc[name] = (acc[name] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+  const restockedData = Object.entries(restockedCounts)
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => (b.count as number) - (a.count as number))
+    .slice(0, 10); // Top 10
+
+  // Data transformation for 'Busiest Aisles'
+  const aisleCounts = allEvents
+    .filter(ev => ev.item)
+    .reduce((acc, ev) => {
+      const aisle = ev.item.aisle;
+      acc[aisle] = (acc[aisle] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+  const aisleData = Object.entries(aisleCounts)
+    .map(([aisle, count]) => ({ aisle, count }))
+    .sort((a, b) => (b.count as number) - (a.count as number))
+    .slice(0, 10); // Top 10
+
+  // Data transformation for 'Events Over Time' (by day)
+  const eventsByDate = allEvents.reduce((acc, ev) => {
+    const date = new Date(ev.created_at).toLocaleDateString();
+    acc[date] = (acc[date] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  const eventsOverTimeData = Object.entries(eventsByDate)
+    .map(([date, count]) => ({ date, count }))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  // Data transformation for 'Low Stock Frequency by Item'
+  const lowStockCounts = allEvents
+    .filter(ev => ev.action === 'low_stock' && ev.item)
+    .reduce((acc, ev) => {
+      const name = ev.item.name;
+      acc[name] = (acc[name] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+  const lowStockData = Object.entries(lowStockCounts)
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => (b.count as number) - (a.count as number))
+    .slice(0, 10); // Top 10
+
+  // Data transformation for 'Restock vs Empty Ratio by Item'
+  const restockEmptyCounts: Record<string, { restocked: number; empty: number }> = {};
+  allEvents.forEach(ev => {
+    if (!ev.item) return;
+    const name = ev.item.name;
+    if (!restockEmptyCounts[name]) restockEmptyCounts[name] = { restocked: 0, empty: 0 };
+    if (ev.action === 'restocked') restockEmptyCounts[name].restocked += 1;
+    if (ev.action === 'empty') restockEmptyCounts[name].empty += 1;
+  });
+  const restockEmptyData = Object.entries(restockEmptyCounts)
+    .map(([name, counts]) => ({ name, ...counts }))
+    .sort((a, b) => ((b.restocked + b.empty) - (a.restocked + a.empty)))
+    .slice(0, 10); // Top 10 by total events
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -202,10 +308,147 @@ export default function Dashboard() {
       <main className="max-w-4xl mx-auto py-10 px-4">
         <h1 className="text-2xl font-bold mb-4 text-[#0071ce]">Welcome, Manager {profile.name}!</h1>
         <p className="mb-6">View store trends, all events, and manage inventory.</p>
-        <div className="border rounded p-6 bg-white shadow mb-8">
-          <h2 className="text-lg font-bold mb-4">[Charts & Trends Placeholder]</h2>
-          {/* TODO: Add charts/analytics here */}
+        {/* Chart Tabs */}
+        <div className="mb-6 flex gap-2 flex-wrap sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-gray-200">
+          <button
+            key="all"
+            onClick={() => handleTabClick('all')}
+            className={`px-4 py-2 rounded-t font-semibold border-b-2 transition-colors ${selectedTabs.length === allTabKeys.length ? 'bg-[#0071ce] text-white border-[#0071ce]' : 'bg-gray-100 text-gray-700 border-transparent hover:bg-blue-50'}`}
+          >
+            All
+          </button>
+          {chartTabs.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => handleTabClick(tab.key)}
+              className={`px-4 py-2 rounded-t font-semibold border-b-2 transition-colors ${selectedTabs.includes(tab.key) ? 'bg-[#0071ce] text-white border-[#0071ce]' : 'bg-gray-100 text-gray-700 border-transparent hover:bg-blue-50'}`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
+        {/* Chart Content */}
+        {selectedTabs.includes('empty') && (
+          <div className="border rounded-b p-6 bg-white shadow mb-8">
+            <h2 className="text-lg font-bold mb-4">Most Frequently Empty Items</h2>
+            {emptyData.length === 0 ? (
+              <div className="text-gray-500">No empty events yet.</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={emptyData} layout="vertical" margin={{ left: 20, right: 20, top: 10, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" allowDecimals={false} label={{ value: 'Times Empty', position: 'insideBottom', offset: -5 }} />
+                  <YAxis type="category" dataKey="name" width={120} />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#0071ce">
+                    <LabelList dataKey="count" position="right" />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        )}
+        {selectedTabs.includes('restocked') && (
+          <div className="border rounded-b p-6 bg-white shadow mb-8">
+            <h2 className="text-lg font-bold mb-4">Most Frequently Restocked Items</h2>
+            {restockedData.length === 0 ? (
+              <div className="text-gray-500">No restocked events yet.</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={restockedData} layout="vertical" margin={{ left: 20, right: 20, top: 10, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" allowDecimals={false} label={{ value: 'Times Restocked', position: 'insideBottom', offset: -5 }} />
+                  <YAxis type="category" dataKey="name" width={120} />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#ffc220">
+                    <LabelList dataKey="count" position="right" />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        )}
+        {selectedTabs.includes('lowstock') && (
+          <div className="border rounded-b p-6 bg-white shadow mb-8">
+            <h2 className="text-lg font-bold mb-4">Low Stock Frequency by Item</h2>
+            {lowStockData.length === 0 ? (
+              <div className="text-gray-500">No low stock events yet.</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={lowStockData} layout="vertical" margin={{ left: 20, right: 20, top: 10, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" allowDecimals={false} label={{ value: 'Low Stock Events', position: 'insideBottom', offset: -5 }} />
+                  <YAxis type="category" dataKey="name" width={120} />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#ff7043">
+                    <LabelList dataKey="count" position="right" />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        )}
+        {selectedTabs.includes('aisles') && (
+          <div className="border rounded-b p-6 bg-white shadow mb-8">
+            <h2 className="text-lg font-bold mb-4">Busiest Aisles</h2>
+            {aisleData.length === 0 ? (
+              <div className="text-gray-500">No events yet.</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={aisleData} layout="vertical" margin={{ left: 20, right: 20, top: 10, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" allowDecimals={false} label={{ value: 'Events', position: 'insideBottom', offset: -5 }} />
+                  <YAxis type="category" dataKey="aisle" width={120} />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#0071ce">
+                    <LabelList dataKey="count" position="right" />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        )}
+        {selectedTabs.includes('time') && (
+          <div className="border rounded-b p-6 bg-white shadow mb-8">
+            <h2 className="text-lg font-bold mb-4">Events Over Time</h2>
+            {eventsOverTimeData.length === 0 ? (
+              <div className="text-gray-500">No events yet.</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={eventsOverTimeData} margin={{ left: 20, right: 20, top: 10, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis allowDecimals={false} label={{ value: 'Events', angle: -90, position: 'insideLeft' }} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="count" stroke="#0071ce" strokeWidth={3} dot={{ r: 4 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        )}
+        {selectedTabs.includes('ratio') && (
+          <div className="border rounded-b p-6 bg-white shadow mb-8">
+            <h2 className="text-lg font-bold mb-4">Restock vs Empty Ratio by Item</h2>
+            {restockEmptyData.length === 0 ? (
+              <div className="text-gray-500">No restock or empty events yet.</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={restockEmptyData} layout="vertical" margin={{ left: 20, right: 20, top: 10, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" allowDecimals={false} label={{ value: 'Events', position: 'insideBottom', offset: -5 }} />
+                  <YAxis type="category" dataKey="name" width={120} />
+                  <Tooltip />
+                  <Bar dataKey="restocked" fill="#ffc220" name="Restocked">
+                    <LabelList dataKey="restocked" position="right" />
+                  </Bar>
+                  <Bar dataKey="empty" fill="#0071ce" name="Empty">
+                    <LabelList dataKey="empty" position="right" />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        )}
         <div className="border rounded p-6 bg-white shadow">
           <h2 className="text-lg font-bold mb-4">Recent Events</h2>
           {allEvents.length === 0 && <div className="text-gray-500">No events yet.</div>}
